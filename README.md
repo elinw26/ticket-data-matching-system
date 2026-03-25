@@ -114,6 +114,8 @@ Update Dataset for Future Runs
 - structured and classified results in spreadsheet  
 - updated historical dataset for reuse  
 
+Results are grouped by classification categories to improve readability and highlight processing outcomes.
+
 ---
 
 ## Project Structure
@@ -180,3 +182,19 @@ This project is part of an iterative development process:
 - designed as a lightweight automation solution for small-scale workflows  
 - suitable for environments without dedicated backend infrastructure  
 - can be extended to database-based systems for larger-scale applications  
+
+---
+
+---
+
+## Related Projects
+
+This project is part of an iterative development process:
+
+- [Multi-Source Data Processing Automation](https://github.com/elinw26/multi-source-data-processing)  
+  Introduces structured intermediate datasets and modular processing for multi-source spreadsheet workflows  
+
+- [Basic Data Processing Automation](https://github.com/elinw26/basic-data-processing-automation)  
+  Initial automation of manual spreadsheet processing, focusing on filtering, transformation, and data structuring  
+
+This progression reflects the transition from simple automation scripts to a reusable data matching system with incremental processing.
