@@ -1,184 +1,169 @@
-# Data-matching-automation-system
-> Automated data matching and processing system using Python, Google Sheets, and JSON for reusable data workflows.
+# Ticket Data Matching System with Incremental Processing
+
+> Automates the processing of repeated ticket data by reusing historical results and reducing manual classification work.
 
 ---
 
 ## Project Overview
 
-In collaborative data processing workflows, data from multiple sources often overlaps and is processed repeatedly.
+In multi-source support workflows, similar or identical records are processed repeatedly.
 
-Without a shared historical dataset:
+This leads to:
 
-- processed results are not reused  
-- manual work increases across contributors  
-- data consistency becomes difficult to maintain  
+- duplicated manual work
+- inconsistent classification results
+- increasing effort as data volume grows
 
-Additionally, spreadsheet-based solutions (e.g. Google Apps Script) do not scale well due to execution time limitations.
+This project introduces a reusable data matching system that separates processing logic from data storage and enables scalable, incremental data processing.
 
-This project introduces a structured workflow that separates data input, data processing, and data storage.
+---
 
-It enables efficient reuse of historical data and supports scalable data processing beyond spreadsheet limitations.
+## Problem
 
-## Workflow Overview
+Data collected from multiple sources requires repeated manual checking and classification.
 
-The system is built around a continuous data processing loop:
+Existing workflows rely on:
+
+- manual filtering
+- repeated validation of known records
+- reprocessing of already handled data
+
+This results in inefficiency and inconsistency across teams.
+
+---
+
+## Design
+
+The system is designed around three key decisions:
+
+- **Reusable historical dataset (JSON)**  
+  Stores previously processed results to avoid reprocessing identical records
+
+- **Separation of concerns**  
+  Distinguishes between data input (Google Sheets), processing (Python), and storage (JSON)
+
+- **Incremental processing approach**  
+  Only new or unmatched records are processed in each run
+
+---
+
+## Impact
+
+- reduces repeated manual classification effort
+- ensures consistent results across repeated processing runs
+- enables scalable processing as data volume increases
+- supports reuse of validated historical data
+
+---
+
+## Example (Before → After)
+
+### Before
+
+<table>
+  <tr>
+    <td valign="top">
+      <img src="docs/input_example.png" width="250" alt="Input example">
+    </td>
+    <td valign="top">
+      <img src="docs/history_before.png" width="250" alt="Historical dataset before update">
+    </td>
+  </tr>
+</table>
+
+### After
+
+<table>
+  <tr>
+    <td valign="top">
+      <img src="docs/output_example.png" width="250" alt="Output example">
+    </td>
+    <td valign="top">
+      <img src="docs/history_after.png" width="250" alt="Historical dataset after update">
+    </td>
+  </tr>
+</table>
+
+---
+
+## Workflow (Core Logic)
 
 ```text
-Input Data
-   │
-   ▼
-Historical Matching
-   │
-   ▼
-Manual Processing
-   │
-   ▼
-Data Update
-   │
-   ▼
-Data Reuse
+New Data
+   ↓
+Check Against Historical Dataset
+   ↓
+Reuse Known Results
+   ↓
+Process Only New / Unmatched Records
+   ↓
+Update Dataset for Future Runs
 ```
 
-The workflow focuses on reusing existing results, processing only new data, and continuously building a reusable historical dataset.
-
 ---
 
-## Example Workflow
+## Input / Output
 
-The following example illustrates how data flows through the system and how historical data is reused to reduce manual work.
+### Input
 
-### Step 1 — Data Input 
+- raw records from Google Sheets  
+- existing historical dataset (JSON)  
 
-New data is added to the input sheet as the starting point of the processing workflow.
+### Output
 
-<br>
-<img src="docs/input_example.png" width="300">
-<br>
-
----
-
-### Step 2 — Historical Data Loading
-
-Existing records are loaded from the JSON dataset to provide a reusable historical reference.
-
-<br>
-<img src="docs/history_before.png" width="350">
-<br>
-
----
-
-### Step 3 — Data Matching
-
-Incoming data is matched against the historical dataset.  
-
-Known records are processed automatically, while unmatched entries are identified for further handling.
-
-<br>
-<img src="docs/output_example.png" width="300">
-<br>
-
----
-
-### Step 4 — Data Update 
-
-Processed results are written back to the JSON dataset, updating the historical data for future reuse.
-
-<br>
-<img src="docs/history_after.png" width="350">
-<br>
+- structured and classified results in spreadsheet  
+- updated historical dataset for reuse  
 
 ---
 
 ## Project Structure
 
-```text
+### Modules
 
+- **data_preparation**  
+  transforms raw spreadsheet data into structured datasets  
+
+- **data_matching**  
+  compares incoming data with historical records and identifies matches  
+
+- **integration**  
+  connects Google Sheets with processing logic and manages data flow  
+
+```text
 src/
-├─  frontend_data_matching/
-└─  backend_data_update/
+    data_preparation/
+    data_matching/
+    integration/
 
 docs/
-├─ architecture.md
-├─ workflow.md
-└─ code-structure.md
-
-```
-
-- **src** contains the implementation of the data processing system  
-- **docs** contains detailed documentation describing system design and workflow logic
-
-
-## Component Overview
-
-### Data Matching (Frontend)
-
-Responsible for handling incoming data and matching it against the historical dataset.
-
-Typical operations include:
-
-- importing new data  
-- matching against existing records  
-- identifying unmatched entries  
-
----
-
-### Data Processing (Manual Step)
-
-Responsible for handling data that cannot be matched automatically.
-
-Typical operations include:
-
-- analyzing new data  
-- assigning classification results  
-
----
-
-### Data Update (Backend)
-
-Responsible for updating and maintaining the historical dataset.
-
-Typical operations include:
-
-- collecting processed results  
-- updating JSON data  
-- maintaining reusable storage  
-
----
-
-### JSON Data Layer
-
-JSON files stored in Google Drive serve as the shared data layer.
-
-This layer enables:
-
-- reuse of processed data  
-- separation between processing and storage  
-- reduced dependency on spreadsheets
-
----
-
-## System Structure
-The system is divided into three logical parts:
-
-```text
-Google Sheets (Interaction)
-        ↓
-Python Processing
-        ↓
-JSON Data Storage
-
+    architecture.md
+    workflow.md
+    code-structure.md
 ```
 
 ---
-## Documentation
 
-Detailed documentation is available in the **docs** directory:
+## Technical Focus
 
-- System architecture → [docs/architecture.md](docs/architecture.md)
-- Data workflow explanation → [docs/workflow.md](docs/workflow.md)
-- Code structure explanation → [docs/code-structure.md](docs/code-structure.md)
+This project focuses on:
 
-These documents describe the system design and workflow logic in more detail.
+- structuring data processing workflows  
+- separating data input, processing, and storage  
+- improving maintainability through modular design  
+- reducing repeated work through incremental processing  
+- applying automation to support operational workflows  
+
+---
+
+## Project Evolution
+
+This project is part of an iterative development process:
+
+- Initial stage: simple automation of manual data filtering  
+- Intermediate stage: structured data processing with rule-based logic  
+- Current stage: reusable data matching system with modular architecture  
+
+---
 
 ## Technologies
 
@@ -186,21 +171,12 @@ These documents describe the system design and workflow logic in more detail.
 - JSON  
 - Google Sheets  
 - Google Drive  
-- Google Apps Script (background)
-
----
-
-## Status
-
-This repository contains a simplified public version of the automation system.
-
-Sensitive data and internal workflow details have been removed before publication.
+- Google Apps Script  
 
 ---
 
 ## Notes
 
-- translates real-world workflows into structured systems  
-- applies automation under practical constraints  
-- transitions from spreadsheet-based logic to Python  
-- builds reusable data processing pipelines  
+- designed as a lightweight automation solution for small-scale workflows  
+- suitable for environments without dedicated backend infrastructure  
+- can be extended to database-based systems for larger-scale applications  
