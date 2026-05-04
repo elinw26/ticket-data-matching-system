@@ -11,9 +11,9 @@ This folder contains a simplified demo of the core matching logic.
 
 ### Files
 
-- `demo.py` — core matching logic (3-stage workflow)
-- `sample_history.json` — simulated historical dataset
-- `sample_new_ids.json` — simulated new input data
+- [`demo.py`](demo.py) — core matching logic (3-stage workflow)
+- [`sample_history.json`](sample_history.json) — simulated historical dataset
+- [`sample_new_ids.json`](sample_new_ids.json) — simulated new input data
 
 ### Note
 
