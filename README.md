@@ -1,200 +1,204 @@
 # Ticket Data Matching System with Incremental Processing
 
-> Automates the processing of repeated ticket data by reusing historical results and reducing manual classification work.
+> A multi-component data processing system for managing, classifying,
+> and incrementally matching ID records across collaborative workflows
+> involving 90+ contributors.
 
 ---
 
 ## Project Overview
 
-In multi-source support workflows, similar or identical records are processed repeatedly.
+In team-based data workflows with a large number of contributors,
+the same records are evaluated repeatedly by different team members, leading to:
 
-This leads to:
+- duplicated classification work across contributors
+- inconsistent results when processing the same records multiple times
+- increasing manual effort as data volume grows
+- no reuse of previously validated results
 
-- duplicated manual work
-- inconsistent classification results
-- increasing effort as data volume grows
+This project introduces a structured system that separates data collection,
+classification, matching, and storage into independent components,
+enabling incremental processing and reuse of historical data.
 
-This project introduces a reusable data matching system that separates processing logic from data storage and enables scalable, incremental data processing.
-
----
-
-## Problem
-
-Data collected from multiple sources requires repeated manual checking and classification.
-
-Existing workflows rely on:
-
-- manual filtering
-- repeated validation of known records
-- reprocessing of already handled data
-
-This results in inefficiency and inconsistency across teams.
+The system was designed to support workflows involving 90+ contributors,
+where data volume and concurrent evaluation work make manual processing
+and single-sheet solutions impractical.
 
 ---
 
-## Design
+## System Components
 
-The system is designed around three key decisions:
+The system consists of two main parts:
 
-- **Reusable historical dataset (JSON)**  
-  Stores previously processed results to avoid reprocessing identical records
+### Part 1 — Team Evaluation and Data Collection (Google Apps Script)
 
-- **Separation of concerns**  
-  Distinguishes between data input (Google Sheets), processing (Python), and storage (JSON)
+Manages the collaborative evaluation workflow across multiple contributors.
 
-- **Incremental processing approach**  
-  Only new or unmatched records are processed in each run
+Key functions:
+- custom menu interface for triggering all workflow steps
+- color-coded classification of records across multiple sheets
+  into predefined categories based on evaluation results
+- automated consolidation of category changes across all contributors
+- automated daily backup combining results from all contributors
+- batch processing with timeout handling and trigger-based continuation
+  for large datasets (10MB file size management)
+- writing classified results into structured JSON files on Google Drive
+- date-based data cleanup to remove outdated records
+
+### Part 2 — Record Matching and Distribution (Google Apps Script + Python)
+
+Handles matching of new records against the historical JSON dataset
+and distributes results to classification sheets.
+
+Key functions:
+- loading multiple JSON classification files from Google Drive
+  representing different evaluation categories
+- matching incoming records against predefined classification categories
+- writing matched results to corresponding sheets
+- distributing unmatched records in configurable batches for manual review
+- cross-spreadsheet data backup and archiving
+- time tracking and daily work log registration
+
+The core matching logic is implemented in Python for more flexible
+processing beyond Google Apps Script execution limits.
+
+### Desktop Application (PyQt5)
+
+To reduce operational errors and simplify the workflow for contributors,
+a desktop application was developed with a graphical interface.
+
+Key features:
+- configurable batch size for record distribution
+- individual contributor backup sheet management with link verification
+- language support for multilingual teams
+- real-time progress display during processing
+- saved configuration across sessions
+
+<img src="docs/desktop_app_interface.png" width="350" alt="Desktop application interface">
+*Interface shown with internal labels redacted. Operational language: Chinese.*
 
 ---
 
-## Impact
-
-- reduces repeated manual classification effort
-- ensures consistent results across repeated processing runs
-- enables scalable processing as data volume increases
-- supports reuse of validated historical data
-
----
-
-## Example (Before → After)
-
-### Before
-
-<table>
-  <tr>
-    <td valign="top">
-      <img src="docs/input_example.png" width="250" alt="Input example">
-    </td>
-    <td valign="top">
-      <img src="docs/history_before.png" width="250" alt="Historical dataset before update">
-    </td>
-  </tr>
-</table>
-
-### After
-
-<table>
-  <tr>
-    <td valign="top">
-      <img src="docs/output_example.png" width="250" alt="Output example">
-    </td>
-    <td valign="top">
-      <img src="docs/history_after.png" width="250" alt="Historical dataset after update">
-    </td>
-  </tr>
-</table>
-
----
-
-## Workflow (Core Logic)
+## Architecture
 
 ```text
-New Data
-   ↓
-Check Against Historical Dataset
-   ↓
-Reuse Known Results
-   ↓
-Process Only New / Unmatched Records
-   ↓
-Update Dataset for Future Runs
+Contributor Sheets (Evaluation Input)
+        │
+        ▼
+Google Apps Script (Collection + Classification)
+        │
+        ▼
+JSON Files on Google Drive (Historical Dataset)
+        │
+        ▼
+Python Matching Layer (Core Logic)
+        │
+        ▼
+Google Sheets (Classified Output + Distribution)
 ```
 
 ---
 
-## Input / Output
-
-### Input
-
-- raw records from Google Sheets  
-- existing historical dataset (JSON)  
-
-### Output
-
-- structured and classified results in spreadsheet  
-- updated historical dataset for reuse  
-
-Results are grouped by classification categories to improve readability and highlight processing outcomes.
-
----
-
-## Project Structure
-
-### Modules
-
-- **data_preparation**  
-  transforms raw spreadsheet data into structured datasets  
-
-- **data_matching**  
-  compares incoming data with historical records and identifies matches  
-
-- **integration**  
-  connects Google Sheets with processing logic and manages data flow  
+## Workflow
 
 ```text
-src/
-    data_preparation/
-    data_matching/
-    integration/
-
-docs/
-    architecture.md
-    workflow.md
-    code-structure.md
+Contributors evaluate records in individual sheets
+        ↓
+Daily backup collects and consolidates results
+        ↓
+Classified records written to JSON dataset on Google Drive
+        ↓
+New records matched against historical JSON dataset
+        ↓
+Matched records distributed to classification sheets
+        ↓
+Unmatched records distributed for manual review
+        ↓
+Historical dataset updated for future runs
 ```
 
 ---
 
-## Technical Focus
+## Design Decisions
 
-This project focuses on:
+**JSON as historical storage**
+Lightweight, portable, and readable without infrastructure.
+Suitable for team workflows without a dedicated backend.
 
-- structuring data processing workflows  
-- separating data input, processing, and storage  
-- improving maintainability through modular design  
-- reducing repeated work through incremental processing  
-- applying automation to support operational workflows  
+**Separation of collection and matching**
+Team evaluation (GAS) and matching logic (Python) are independent.
+This allows the matching layer to be replaced or extended
+without affecting the collection workflow.
 
----
+**Incremental processing**
+Only unmatched records are processed in each run.
+Previously validated results are reused directly from the historical dataset.
 
-## Project Evolution
+**Batch processing with timeout handling**
+Google Apps Script has a 6-minute execution limit.
+The system uses progress tracking and time-based triggers
+to continue processing large datasets across multiple runs.
 
-This project is part of an iterative development process:
+**Transition from Google Apps Script to Python**
+With 90+ contributors generating data across multiple sheets,
+JSON files began approaching the 10MB threshold,
+making it difficult for GAS triggers to complete a full scan
+within the 6-minute execution limit.
 
-- Initial stage: simple automation of manual data filtering  
-- Intermediate stage: structured data processing with rule-based logic  
-- Current stage: reusable data matching system with modular architecture  
+The Python layer was introduced to handle matching logic
+independently of these constraints.
+
+For future scaling, a database layer could replace the current
+JSON storage, removing the file size limitation entirely.
+The exact implementation is still in the planning stage.
+
+**Error reduction through interface design**
+As contributor count grew, operational errors from manual steps
+increased. A desktop application with a guided interface was
+introduced to standardize the workflow and reduce input errors,
+alongside contributor training documentation.
 
 ---
 
 ## Technologies
 
-- Python  
-- JSON  
-- Google Sheets  
-- Google Drive  
-- Google Apps Script  
+| Technology | Role |
+|---|---|
+| Google Apps Script | Team workflow automation, data collection, UI |
+| Python | Core matching logic, incremental processing |
+| PyQt5 | Desktop application interface for contributors |
+| JSON | Historical dataset storage, intermediate data layer |
+| Google Sheets | Data input, output, and team interaction |
+| Google Drive | Centralized JSON file storage |
 
 ---
 
-## Notes
+## Implementation Notes
 
-- designed as a lightweight automation solution for small-scale workflows  
-- suitable for environments without dedicated backend infrastructure  
-- can be extended to database-based systems for larger-scale applications  
+The Google Apps Script components handle team collaboration workflows
+and contain internal operational data.
+These components are not published in this repository.
+
+The `src/data_matching/` folder contains a Python demo of the core
+matching logic, using local JSON files as sample data.
 
 ---
+
+## Project Evolution
+
+- Initial stage: simple automation of manual data filtering
+- Intermediate stage: structured data processing with rule-based logic
+- Current stage: multi-component system with incremental matching,
+  collaborative evaluation workflow, and desktop application interface
 
 ---
 
 ## Related Projects
 
-This project is part of an iterative development process:
-
 - [Multi-Source Data Processing Automation](https://github.com/elinw26/multi-source-data-processing)  
-  Introduces structured intermediate datasets and modular processing for multi-source spreadsheet workflows  
+  Introduces structured JSON storage and modular processing
+  across multiple data sources
 
 - [Basic Data Processing Automation](https://github.com/elinw26/basic-data-processing-automation)  
-  Initial automation of manual spreadsheet processing, focusing on filtering, transformation, and data structuring  
-
-This progression reflects the transition from simple automation scripts to a reusable data matching system with incremental processing.
+  Initial automation of manual spreadsheet workflows
+  using Google Apps Script
