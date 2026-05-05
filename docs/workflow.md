@@ -1,108 +1,208 @@
 # Data Processing Workflow
 
-This document describes how data flows through the Data Matching Automation System.
+## Overview
 
-The workflow focuses on reusing historical data and processing only new or unmatched records.
+The system operates through two parallel workflow paths
+that share a common JSON storage layer:
+
+- **Path 1** — Team evaluation and data collection
+- **Path 2** — Record matching and distribution
+
+Both paths are designed to handle large datasets from 90+
+contributors, with timeout handling and trigger-based
+continuation where needed.
 
 ---
 
-## Workflow Overview
+## Path 1 — Team Evaluation and Data Collection
 
-The data processing workflow can be summarized as:
+This path handles the daily collection and consolidation
+of contributor evaluation results.
 
+```text
+Contributors evaluate records in individual sheets
+        ↓
+Color-coded classification applied to records
+        ↓
+Daily backup triggered via custom menu
+        ↓
+Results consolidated from all contributor sheets
+        ↓
+Classified records written to JSON files on Google Drive
+        ↓
+Outdated records removed based on date threshold
 ```
-Input Data (Google Sheets)
-        ↓
-Load Historical Data (JSON)
-        ↓
-Data Matching (Python)
-        ↓
-Manual Handling (Unmatched Records)
-        ↓
-Update Historical Dataset (JSON)
-```
 
+### Step 1 — Individual Evaluation
 
-Each stage performs a specific role while keeping the system modular and efficient.
+Each contributor evaluates records in their own sheet,
+applying color-coded classifications based on
+predefined evaluation criteria.
 
----
+Contributors operate independently,
+with no direct dependency on other contributors' sheets.
 
-## Step 1 — Data Input
+### Step 2 — Daily Backup and Consolidation
 
-New data is entered through Google Sheets.
+A daily backup process consolidates results from
+all contributor sheets into summary sheets.
 
-These records serve as the starting point of the processing workflow.
+Key characteristics:
+- processes multiple contributor sheets in a single run
+- handles large datasets through batch processing
+- uses timeout detection and trigger-based continuation
+  to complete processing across multiple runs if needed
+- manages JSON file size through automatic file splitting at 10MB
 
-Typical characteristics:
+### Step 3 — JSON Dataset Update
 
-- newly collected records  
-- not yet processed  
-- may overlap with existing data  
-
----
-
-## Step 2 — Load Historical Data
-
-The system loads previously processed data from JSON storage.
-
-This dataset serves as a reusable reference for matching operations.
-
-Key purpose:
-
-- avoid reprocessing known records  
-- provide consistent historical context  
-
----
-
-## Step 3 — Data Matching
-
-Incoming data is compared against the historical dataset.
-
-During this step:
-
-- known records are matched automatically  
-- unmatched records are identified  
-
-The system separates data into:
-
-- **matched records** → already known  
-- **unmatched records** → require further handling  
-
----
-
-## Step 4 — Manual Handling (Unmatched Records)
-
-Records that could not be matched are processed manually.
-
-This step may include:
-
-- assigning classification results  
-- validating new data  
-- completing missing information  
-
-This ensures that new data becomes usable for future automation.
-
----
-
-## Step 5 — Update Historical Dataset
-
-Processed results are written back into the JSON dataset.
+Consolidated and classified records are written to
+structured JSON files stored on Google Drive.
 
 This step:
+- appends newly classified records to existing JSON files
+- creates new files when existing files approach 10MB
+- maintains a continuously growing historical dataset
+- provides the data foundation for Path 2
 
-- adds newly processed records  
-- updates existing entries if necessary  
-- maintains a continuously growing dataset  
+### Step 4 — Data Cleanup
+
+Outdated records are removed based on configurable date thresholds,
+keeping the dataset current and manageable.
 
 ---
 
-## Summary
+## Path 2 — Record Matching and Distribution
 
-The workflow follows a continuous loop:
+This path handles matching of incoming records against
+the historical JSON dataset and distributes results
+to classification sheets.
 
-1. input new data  
-2. reuse historical data  
-3. process only unmatched records  
-4. update the dataset for future reuse  
+```text
+New records prepared in input sheet
+        ↓
+Desktop application or GAS triggered
+        ↓
+JSON classification files loaded from Google Drive
+        ↓
+Records matched against classification categories
+        ↓
+Matched records written to classification sheets
+        ↓
+Unmatched records distributed in configurable batches
+        ↓
+Historical dataset updated with new records
+```
 
-This approach reduces repetitive work and enables scalable data processing.
+### Step 1 — Input Preparation
+
+New records are prepared in the input sheet,
+either manually or through automated collection.
+
+Duplicate records are automatically removed
+before processing begins.
+
+### Step 2 — Classification File Loading
+
+Multiple JSON classification files are loaded
+from the Google Drive folder.
+
+Each file represents a different classification category,
+loaded and parsed into memory for matching.
+
+### Step 3 — Record Matching
+
+Incoming records are matched against the loaded
+classification datasets.
+
+Matching logic:
+- checks each incoming record against all classification categories
+- assigns matched records to their corresponding category
+- identifies unmatched records for separate handling
+- ensures no record is processed in multiple categories
+
+### Step 4 — Results Distribution
+
+Matched records are written to their corresponding
+classification sheets for team use.
+
+Unmatched records are distributed in configurable batches
+for manual review and follow-up.
+
+### Step 5 — Dataset Update
+
+The historical dataset is updated with newly processed records,
+ensuring future runs can reuse validated results
+without reprocessing.
+
+---
+
+## Python Core Logic Workflow
+
+The Python matching layer implements the core incremental
+processing logic independently of GAS constraints.
+
+```text
+Load new records from JSON file
+        ↓
+Load historical dataset from JSON file
+        ↓
+Compare records against historical dataset
+        ↓
+Classify as matched or unmatched
+        ↓
+Write results to output
+        ↓
+Update historical dataset with new records
+```
+
+This layer was introduced when data volume made
+GAS-based processing unreliable due to:
+- execution time limits
+- network instability during online processing
+- difficulty recovering from mid-run failures
+
+---
+
+## Workflow Coordination
+
+The two paths share the JSON storage layer on Google Drive,
+which acts as the interface between collection and matching.
+
+```text
+Path 1 (Collection)          Path 2 (Matching)
+        │                           │
+        ▼                           ▼
+    Writes to                  Reads from
+        │                           │
+        └──────► JSON Storage ◄─────┘
+```
+
+This separation means:
+- collection and matching can run independently
+- the historical dataset grows continuously across both paths
+- either path can be updated without affecting the other
+
+---
+
+## Error Handling and Recovery
+
+**Timeout handling**
+Both GAS components detect approaching execution limits
+and save progress before stopping,
+with triggers scheduled to continue processing.
+
+**Duplicate detection**
+Incoming records are deduplicated before matching
+to prevent redundant processing.
+
+**File size management**
+JSON files are automatically split at 10MB
+to prevent individual files from becoming too large
+for reliable GAS processing.
+
+**Planned improvements**
+A Python desktop application is planned to replace
+the online GAS processing layer,
+eliminating network dependency and providing
+more reliable error recovery for large datasets.
