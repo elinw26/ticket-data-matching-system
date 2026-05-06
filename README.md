@@ -75,7 +75,7 @@ Key features:
 - saved configuration across sessions
 
 <img src="docs/desktop_app_interface.png" width="350" alt="Desktop application interface">
-*Interface shown with internal labels redacted. Operational language: Chinese.*
+<p><em>Interface shown with internal labels redacted. Operational language: Chinese.</em></p>
 
 ---
 
